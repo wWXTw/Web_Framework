@@ -1,30 +1,27 @@
 package swf
 
 import (
-	"fmt"
 	"net/http"
 )
 
 // 函数定义
-type HandleFunc func(http.ResponseWriter, *http.Request)
+type HandleFunc func(*Context)
 
 // 实现ServeHttp接口的结构
 type Engine struct {
-	// router为一个根据不同req获取不同函数的哈希表
-	router map[string]HandleFunc
+	router *Router
 }
 
-// 构造函数
+// 初始化创建
 func New() *Engine {
 	return &Engine{
-		router: make(map[string]HandleFunc),
+		router: NewRouter(),
 	}
 }
 
-// 加入新route函数
+// 往router中添加路由
 func (engine *Engine) AddRoute(method string, pattern string, handler HandleFunc) {
-	key := method + "%" + pattern
-	engine.router[key] = handler
+	engine.router.AddRoute(method, pattern, handler)
 }
 
 // Get函数
@@ -44,11 +41,6 @@ func (engine *Engine) Run(addr string) error {
 
 // 重写ServeHTTP接口
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	key := req.Method + "%" + req.URL.Path
-	// 检验这个router是否存储在routers之中
-	if handler, ok := engine.router[key]; ok {
-		handler(w, req)
-	} else {
-		fmt.Fprintf(w, "404 Not Found:%q\n", req.URL.Path)
-	}
+	c := NewContext(w, req)
+	engine.router.GetHandler(c)
 }

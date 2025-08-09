@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"webframe/swf"
 )
@@ -9,13 +8,17 @@ import (
 func main() {
 	r := swf.New()
 	// 设置routers
-	r.GET("/", func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprintf(w, "URL.Path = %q\n", req.URL.Path)
+	r.GET("/", func(c *swf.Context) {
+		c.HTML(http.StatusOK, "<h1>Welcome to Sherlock WebFrameWork!<h1>")
 	})
-	r.GET("/hello", func(w http.ResponseWriter, req *http.Request) {
-		for k, v := range req.Header {
-			fmt.Fprintf(w, "[Head:%q] = %q\n", k, v)
-		}
+	r.GET("/hello", func(c *swf.Context) {
+		c.String(http.StatusOK, "Hi there,%s,you're at %s", c.Query("name"), c.Path)
+	})
+	r.GET("/login", func(c *swf.Context) {
+		c.JSON(http.StatusOK, swf.H{
+			"username": c.PostForm("username"),
+			"password": c.PostForm("password"),
+		})
 	})
 	// 启动
 	r.Run(":5555")
