@@ -17,6 +17,7 @@ type Context struct {
 	// 请求信息
 	Path   string
 	Method string
+	Params map[string]string
 	// 返回信息
 	StatusCode int
 }
@@ -29,6 +30,12 @@ func NewContext(w http.ResponseWriter, req *http.Request) *Context {
 		Path:   req.URL.Path,
 		Method: req.Method,
 	}
+}
+
+// 获取参数函数
+func (c *Context) Param(key string) string {
+	v := c.Params[key]
+	return v
 }
 
 // URL查询函数
