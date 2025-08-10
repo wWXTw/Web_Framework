@@ -7,31 +7,65 @@ import (
 // 函数定义
 type HandleFunc func(*Context)
 
-// 实现ServeHttp接口的结构
+// 实现ServeHttp接口的engine结构
 type Engine struct {
+	// 嵌入式字段 (类似于继承的功能 | 这样既可以直接注册也可以分组注册)
+	*RouterGroup
 	router *Router
+	// 保存所有的Group
+	groups []*RouterGroup
+}
+
+// 路由组的结构
+type RouterGroup struct {
+	// 组前缀
+	prefix string
+	// 组映射的中间件
+	middlewares []HandleFunc
+	// support nesting...?
+	parent *RouterGroup
+	// 每个Group保存一个Engine对象
+	engine *Engine
 }
 
 // 初始化创建
 func New() *Engine {
-	return &Engine{
+	engine := &Engine{
 		router: NewRouter(),
 	}
+	engine.RouterGroup = &RouterGroup{engine: engine}
+	engine.groups = []*RouterGroup{engine.RouterGroup}
+	return engine
 }
 
-// 往router中添加路由
-func (engine *Engine) AddRoute(method string, pattern string, handler HandleFunc) {
-	engine.router.AddRoute(method, pattern, handler)
+// 创建新Group函数
+func (group *RouterGroup) Group(prefix string) *RouterGroup {
+	engine := group.engine
+	newGroup := &RouterGroup{
+		// 前缀拼接
+		prefix:      group.prefix + prefix,
+		middlewares: make([]HandleFunc, 0),
+		parent:      group,
+		engine:      engine,
+	}
+	engine.groups = append(engine.groups, newGroup)
+	return newGroup
 }
 
-// Get函数
-func (engine *Engine) GET(pattern string, handler HandleFunc) {
-	engine.AddRoute("GET", pattern, handler)
+// 往router中添加路由 (Engine与RouterGroup都能使用)
+func (group *RouterGroup) AddRoute(method string, component string, handler HandleFunc) {
+	pattern := group.prefix + component
+	group.engine.router.AddRoute(method, pattern, handler)
 }
 
-// Post函数
-func (engine *Engine) POST(pattern string, handler HandleFunc) {
-	engine.AddRoute("POST", pattern, handler)
+// Get函数 (Engine与RouterGroup都能使用)
+func (group *RouterGroup) GET(component string, handler HandleFunc) {
+	group.AddRoute("GET", component, handler)
+}
+
+// Post函数 (Engine与RouterGroup都能使用)
+func (group *RouterGroup) POST(component string, handler HandleFunc) {
+	group.AddRoute("POST", component, handler)
 }
 
 // 启动框架函数
