@@ -22,6 +22,8 @@ func main() {
 		})
 	}
 	v2 := r.Group("/v2")
+	// v2组使用Logger中间件
+	v2.Use(swf.Logger())
 	{
 		v2.GET("/hello/:name", func(ctx *swf.Context) {
 			ctx.String(http.StatusOK, "Hi there,%s,you're at %s\n", ctx.Param("name"), ctx.Path)

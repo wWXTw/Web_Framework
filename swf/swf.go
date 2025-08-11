@@ -2,6 +2,7 @@ package swf
 
 import (
 	"net/http"
+	"strings"
 )
 
 // 函数定义
@@ -73,8 +74,22 @@ func (engine *Engine) Run(addr string) error {
 	return http.ListenAndServe(addr, engine)
 }
 
+// 设置中间件
+func (group *RouterGroup) Use(middle ...HandleFunc) {
+	group.middlewares = append(group.middlewares, middle...)
+}
+
 // 重写ServeHTTP接口
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	c := NewContext(w, req)
+	// 根据请求从Group设置的中间件中获取对应的放入上下文Context中
+	middlewares := make([]HandleFunc, 0)
+	for _, group := range engine.groups {
+		if isMember := strings.HasPrefix(req.URL.Path, group.prefix); isMember {
+			middlewares = append(middlewares, group.middlewares...)
+		}
+	}
+	// 将中间件放入Context中
+	c.handlers = middlewares
 	engine.router.GetHandler(c)
 }

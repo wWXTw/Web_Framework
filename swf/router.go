@@ -87,8 +87,14 @@ func (r *Router) GetHandler(c *Context) {
 		c.Params = params
 		// 利用node.pattern还原注册路由
 		key := c.Method + "%" + node.pattern
-		r.handlers[key](c)
+		// 将其放在中间件后进行执行
+		c.handlers = append(c.handlers, r.handlers[key])
 	} else {
-		c.String(http.StatusNotFound, "404 Not Found:%q\n", c.Path)
+		// 置于中间件后
+		c.handlers = append(c.handlers, func(ctx *Context) {
+			ctx.String(http.StatusNotFound, "404 Not Found:%q\n", c.Path)
+		})
 	}
+	// 开始按顺序执行设置的中间件与函数
+	c.Next()
 }
