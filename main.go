@@ -7,6 +7,8 @@ import (
 
 func main() {
 	r := swf.New()
+	// 设置静态相对位置
+	r.Static("/assets", "./static")
 	// 设置routers
 	r.GET("/home", func(ctx *swf.Context) {
 		ctx.HTML(http.StatusOK, "<h1>Welcome to Sherlock WebFrameWork!<h1>")

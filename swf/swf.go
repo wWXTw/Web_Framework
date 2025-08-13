@@ -2,6 +2,7 @@ package swf
 
 import (
 	"net/http"
+	"path"
 	"strings"
 )
 
@@ -92,4 +93,31 @@ func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// 将中间件放入Context中
 	c.handlers = middlewares
 	engine.router.GetHandler(c)
+}
+
+// 创建静态文件handler
+func (group *RouterGroup) CreateStaticHandler(relativePath string, fs http.FileSystem) HandleFunc {
+	absolutePath := path.Join(group.prefix, relativePath)
+	// fileServer为一个新的的handler(与engine类似)实例,功能是将URL的前缀去掉并在fs对应的目录下进行查找
+	// fileServer本质上是一个包装好的handler处理器
+	fileServer := http.StripPrefix(absolutePath, http.FileServer(fs))
+	return func(ctx *Context) {
+		file := ctx.Param("filepath")
+		// 不能打开/文件不存在返回错误
+		if _, err := fs.Open(file); err != nil {
+			ctx.Status(http.StatusNotFound)
+			return
+		}
+		// 先去除前缀,再由内部的http.FileServer(fs)进行处理
+		fileServer.ServeHTTP(ctx.W, ctx.Req)
+	}
+}
+
+// 用户的静态文件映射接口
+func (group *RouterGroup) Static(relativePath string, root string) {
+	handler := group.CreateStaticHandler(relativePath, http.Dir(root))
+	// 设置URL
+	pattern := relativePath + "/*filepath"
+	// 注册路由
+	group.GET(pattern, handler)
 }
