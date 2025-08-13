@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"text/template"
 )
 
 // 函数定义
@@ -16,6 +17,10 @@ type Engine struct {
 	router *Router
 	// 保存所有的Group
 	groups []*RouterGroup
+	// HTML模版存放
+	htmlTemplates *template.Template
+	// HTML FuncMap
+	funcMap template.FuncMap
 }
 
 // 路由组的结构
@@ -24,7 +29,7 @@ type RouterGroup struct {
 	prefix string
 	// 组映射的中间件
 	middlewares []HandleFunc
-	// support nesting...?
+	// 父组
 	parent *RouterGroup
 	// 每个Group保存一个Engine对象
 	engine *Engine
@@ -80,6 +85,17 @@ func (group *RouterGroup) Use(middle ...HandleFunc) {
 	group.middlewares = append(group.middlewares, middle...)
 }
 
+// 设置HTML FuncMap
+func (engine *Engine) SetFuncMap(funcMap template.FuncMap) {
+	engine.funcMap = funcMap
+}
+
+// 加载HTML模版的方法
+func (engine *Engine) LoadHTMLGlob(pattern string) {
+	// 加载完存入htmlTemplates中
+	engine.htmlTemplates = template.Must(template.New("").Funcs(engine.funcMap).ParseGlob(pattern))
+}
+
 // 重写ServeHTTP接口
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	c := NewContext(w, req)
@@ -92,6 +108,7 @@ func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	// 将中间件放入Context中
 	c.handlers = middlewares
+	c.engine = engine
 	engine.router.GetHandler(c)
 }
 

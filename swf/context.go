@@ -11,6 +11,8 @@ type H map[string]interface{}
 
 // 上下文的数据结构
 type Context struct {
+	// engine实例
+	engine *Engine
 	// request与responsewriter
 	W   http.ResponseWriter
 	Req *http.Request
@@ -64,10 +66,13 @@ func (c *Context) SetHeader(key string, value string) {
 }
 
 // 构造HTML响应
-func (c *Context) HTML(code int, html string) {
+func (c *Context) HTML(code int, name string, data interface{}) {
 	c.SetHeader("Content-Type", "text/html")
 	c.Status(code)
-	c.W.Write([]byte(html))
+	// 执行指定的模版并填入数据
+	if err := c.engine.htmlTemplates.ExecuteTemplate(c.W, name, data); err != nil {
+		http.Error(c.W, err.Error(), 500)
+	}
 }
 
 // 构造JSON响应
