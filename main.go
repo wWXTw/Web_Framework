@@ -59,6 +59,16 @@ func main() {
 			})
 		})
 	}
+	// panic测试
+	r.Use(swf.Recovery())
+	r.GET("/", func(ctx *swf.Context) {
+		ctx.String(http.StatusOK, "Hello Alex\n")
+	})
+	// index out of range情况的panic
+	r.GET("/panic", func(ctx *swf.Context) {
+		names := []string{"Alex"}
+		ctx.String(http.StatusOK, names[100])
+	})
 	// 启动
 	r.Run(":5555")
 }
