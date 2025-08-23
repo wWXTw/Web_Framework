@@ -1,3 +1,2 @@
-# Web_Framework
-This repository implements a light web framework.  
-本项目实现了一个轻量级的Web框架
+# SWF - A Tiny Gin-like Web Framework in Go
+> 受Gin启发编写的轻量级Web框架
